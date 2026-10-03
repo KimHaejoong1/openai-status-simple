@@ -196,18 +196,57 @@ test('rerunning the same pending version succeeds without a second submission', 
   assert.equal(calls.length, 2);
 });
 
-test('different pending, staged, warned, and unpublished items need attention first', async () => {
+test('different pending, staged, warned, and malformed published items need attention first', async () => {
   for (const overrides of [
     { submittedItemRevisionStatus: { state: 'PENDING_REVIEW', distributionChannels: [{ crxVersion: '1.0.2' }] } },
     { submittedItemRevisionStatus: { state: 'STAGED' } },
     { warned: true },
     { takenDown: true },
-    { publishedItemRevisionStatus: undefined },
+    { publishedItemRevisionStatus: { state: 'PUBLISHED', distributionChannels: [] } },
   ]) {
     const { calls, fetchImpl } = mock([{ access_token: 'test-access' }, { ...item(), ...overrides }]);
     await assert.rejects(runStore({ ...args, fetchImpl }));
     assert.equal(calls.length, 2);
   }
+});
+
+test('manual check reports an existing unpublished item without submitting it', async () => {
+  const { calls, fetchImpl } = mock([{ access_token: 'test-access' }, { ...identity }]);
+  const result = await runStore({ ...args, mode: 'check', zip: undefined, fetchImpl });
+  assert.equal(result.result, 'CONNECTION_VERIFIED');
+  assert.deepEqual(result.publishedVersions, []);
+  assert.equal(result.publishedState, null);
+  assert.equal(result.submissionState, null);
+  assert.equal(result.takenDown, false);
+  assert.equal(result.warned, false);
+  assert.equal(calls.length, 2);
+});
+
+test('an existing unpublished item is updated under the same verified item ID', async () => {
+  const { calls, fetchImpl } = mock([{ access_token: 'test-access' }, { ...identity }, upload(), submission()]);
+  const result = await runStore({ ...args, fetchImpl });
+  assert.equal(result.result, 'PENDING_REVIEW');
+  assert.equal(calls.length, 4);
+  assert.ok(calls[2].url.endsWith(`${name}:upload`));
+  assert.ok(calls[3].url.endsWith(`${name}:publish`));
+});
+
+test('unpublished items still preserve submissions and respect policy restrictions', async () => {
+  for (const overrides of [
+    { submittedItemRevisionStatus: { state: 'PENDING_REVIEW', distributionChannels: [{ crxVersion: '1.0.2' }] } },
+    { submittedItemRevisionStatus: { state: 'STAGED' } },
+    { takenDown: true },
+    { warned: true },
+    { itemId: 'another-item' },
+  ]) {
+    const { calls, fetchImpl } = mock([{ access_token: 'test-access' }, { ...identity, ...overrides }]);
+    await assert.rejects(runStore({ ...args, fetchImpl }));
+    assert.equal(calls.length, 2);
+  }
+  const current = { ...identity, submittedItemRevisionStatus: { state: 'PENDING_REVIEW', distributionChannels: [{ crxVersion: '2.0.0' }] } };
+  const { calls, fetchImpl } = mock([{ access_token: 'test-access' }, current]);
+  assert.equal((await runStore({ ...args, fetchImpl })).result, 'ALREADY_SUBMITTED');
+  assert.equal(calls.length, 2);
 });
 
 test('HTTP errors do not expose raw response bodies or retry publication', async () => {

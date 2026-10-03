@@ -71,10 +71,12 @@ export async function runStore({ mode, extensionId, version, zip, env = process.
   const submitted = current.submittedItemRevisionStatus;
   const publishedVersions = published?.distributionChannels?.map(channel => channel.crxVersion) ?? [];
 
-  if (mode === 'check') return { result: 'CONNECTION_VERIFIED', extensionId, publishedVersions, submissionState: submitted?.state ?? null };
+  if (mode === 'check') return { result: 'CONNECTION_VERIFIED', extensionId, publishedVersions, publishedState: published?.state ?? null, submissionState: submitted?.state ?? null, takenDown: current.takenDown ?? false, warned: current.warned ?? false };
   if (!zip?.length) throw new Error('Extension ZIP is empty or missing.');
   if (current.takenDown || current.warned) throw new Error('The item needs attention in the Web Store dashboard before publishing.');
-  if (!publishedVersions.length) throw new Error('Could not verify the existing published version; refusing to replace an unverified item.');
+  // The API omits this revision for an existing, currently unpublished item.
+  // Its publisher and item ID have already been verified by fetchItem().
+  if (published != null && !publishedVersions.length) throw new Error('Could not verify the version of the existing published revision.');
   for (const previous of publishedVersions) {
     if (compareVersions(version, previous) < 0) throw new Error('The release version is older than a published version.');
   }
