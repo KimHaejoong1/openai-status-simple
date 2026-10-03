@@ -20,7 +20,7 @@
 1. [Google Cloud Console](https://console.cloud.google.com/)에서 배포용 프로젝트를 선택합니다. **Chrome Web Store API**를 이미 활성화했다면 그 프로젝트를 그대로 사용합니다.
 2. **IAM 및 관리자 → 서비스 계정 → 서비스 계정 만들기**로 이동합니다. 이름은 `chrome-web-store-deploy`처럼 정합니다. 프로젝트 IAM 역할과 사용자 액세스는 추가하지 않고 완료합니다. 웹 스토어 권한은 다음 단계에서 연결합니다.
 3. 만들어진 서비스 계정의 이메일(`...@...iam.gserviceaccount.com`)을 복사합니다.
-4. 기존 확장 프로그램을 관리하는 계정으로 [Chrome 웹 스토어 개발자 대시보드](https://chrome.google.com/webstore/devconsole/)에 로그인합니다. **계정 → 프로필(Account)**의 **서비스 계정(Service account)** 항목에 위 이메일을 등록합니다. 이 연결은 해당 게시자의 항목을 관리할 권한을 부여합니다. 게시자당 서비스 계정은 하나만 연결할 수 있으므로 기존 연결이 있다면 그 계정을 사용하거나 기존 배포에 미치는 영향을 먼저 확인합니다.
+4. 기존 확장 프로그램을 관리하는 계정으로 [Chrome 웹 스토어 개발자 대시보드](https://chrome.google.com/webstore/devconsole/)에 로그인합니다. 왼쪽 **게시자 → 설정(Publisher → Settings)**의 **서비스 계정(Service account)** 항목에 위 이메일을 등록합니다. 이 연결은 해당 게시자의 항목을 관리할 권한을 부여합니다. 게시자당 서비스 계정은 하나만 연결할 수 있으므로 기존 연결이 있다면 그 계정을 사용하거나 기존 배포에 미치는 영향을 먼저 확인합니다.
 5. Google Cloud의 서비스 계정 목록으로 돌아와 해당 계정을 열고 **키 → 키 추가 → 새 키 만들기 → JSON**을 선택합니다. 다운로드된 JSON 파일 전체가 인증 키입니다.
 6. [GitHub Actions Secrets](https://github.com/KimHaejoong1/openai-status-simple/settings/secrets/actions)에 아래 값을 등록합니다.
 
