@@ -1,9 +1,38 @@
 import { appendFile, readFile } from 'node:fs/promises';
+import { createPrivateKey, sign } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { compareVersions, versionParts } from './validate-release.mjs';
 
 const ORIGIN = 'https://chromewebstore.googleapis.com';
+const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const SUCCESS_STATES = new Set(['PENDING_REVIEW', 'PUBLISHED', 'PUBLISHED_TO_TESTERS']);
+
+function authenticationBody(env) {
+  if (!env.CWS_SERVICE_ACCOUNT_KEY?.trim()) {
+    return new URLSearchParams({ client_id: env.CWS_CLIENT_ID, client_secret: env.CWS_CLIENT_SECRET, refresh_token: env.CWS_REFRESH_TOKEN, grant_type: 'refresh_token' });
+  }
+
+  // Use only the key and identity from the JSON; never follow its endpoint URLs.
+  // Keep parse/crypto errors private because they can contain credential values.
+  try {
+    const account = JSON.parse(env.CWS_SERVICE_ACCOUNT_KEY);
+    if (account?.type !== 'service_account' || typeof account.client_email !== 'string'
+      || !/^[a-zA-Z0-9-]+@[a-zA-Z0-9-]+\.iam\.gserviceaccount\.com$/.test(account.client_email)
+      || typeof account.private_key !== 'string' || typeof account.private_key_id !== 'string'
+      || !/^[a-zA-Z0-9_-]+$/.test(account.private_key_id)) throw new Error();
+    const key = createPrivateKey(account.private_key);
+    if (key.asymmetricKeyType !== 'rsa') throw new Error();
+    const issued = Math.floor(Date.now() / 1000);
+    const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+    const header = encode({ alg: 'RS256', typ: 'JWT', kid: account.private_key_id });
+    const claims = encode({ iss: account.client_email, scope: 'https://www.googleapis.com/auth/chromewebstore', aud: TOKEN_URL, iat: issued, exp: issued + 3600 });
+    const unsigned = `${header}.${claims}`;
+    const signature = sign('RSA-SHA256', Buffer.from(unsigned), key).toString('base64url');
+    return new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${unsigned}.${signature}` });
+  } catch {
+    throw new Error('Invalid CWS_SERVICE_ACCOUNT_KEY. Use the complete service account JSON key from Google Cloud.');
+  }
+}
 
 function validateItem(data, name, extensionId) {
   if (data?.name !== name || data?.itemId !== extensionId) throw new Error('Chrome Web Store returned a different or invalid item.');
@@ -14,9 +43,11 @@ export async function runStore({ mode, extensionId, version, zip, env = process.
   if (!['check', 'publish'].includes(mode)) throw new Error('Choose --check or --publish explicitly.');
   if (!/^[a-p]{32}$/.test(extensionId)) throw new Error('Invalid extension ID.');
   versionParts(version);
-  const required = ['CWS_PUBLISHER_ID', 'CWS_CLIENT_ID', 'CWS_CLIENT_SECRET', 'CWS_REFRESH_TOKEN'];
+  const required = env.CWS_SERVICE_ACCOUNT_KEY?.trim()
+    ? ['CWS_PUBLISHER_ID']
+    : ['CWS_PUBLISHER_ID', 'CWS_CLIENT_ID', 'CWS_CLIENT_SECRET', 'CWS_REFRESH_TOKEN'];
   const missing = required.filter(key => !env[key]?.trim());
-  if (missing.length) throw new Error(`Missing configuration: ${missing.join(', ')}. See docs/releasing.md.`);
+  if (missing.length) throw new Error(`Missing configuration: ${missing.join(', ')}. CWS_SERVICE_ACCOUNT_KEY can replace the three OAuth credentials. See docs/releasing.md.`);
   if (!/^[a-zA-Z0-9_-]+$/.test(env.CWS_PUBLISHER_ID)) throw new Error('Invalid publisher ID.');
   const name = `publishers/${env.CWS_PUBLISHER_ID}/items/${extensionId}`;
 
@@ -29,8 +60,8 @@ export async function runStore({ mode, extensionId, version, zip, env = process.
     catch { throw new Error(`${label}: invalid JSON response.`); }
   }
 
-  const auth = await jsonRequest('https://oauth2.googleapis.com/token', {
-    method: 'POST', body: new URLSearchParams({ client_id: env.CWS_CLIENT_ID, client_secret: env.CWS_CLIENT_SECRET, refresh_token: env.CWS_REFRESH_TOKEN, grant_type: 'refresh_token' }),
+  const auth = await jsonRequest(TOKEN_URL, {
+    method: 'POST', body: authenticationBody(env),
   }, 'Authentication');
   if (typeof auth.access_token !== 'string' || !auth.access_token) throw new Error('Authentication did not return an access token.');
   const headers = { Authorization: `Bearer ${auth.access_token}` };

@@ -47,7 +47,7 @@ ChatGPT, API, Codex의 현재 상태를 작은 팝업 하나로 확인하는 크
 
 `main`에 포함된 커밋에 `v2.0.0` 같은 태그를 push하면 GitHub Actions가 테스트, ZIP 생성, 기존 Chrome 웹 스토어 항목 업데이트, 심사 요청까지 실행합니다. Google 인증은 최초 1회 연결해야 합니다. 수동 워크플로 실행은 업로드 없이 연결만 확인합니다.
 
-설정값, 인증 연결, 첫 배포 절차는 [자동 배포 안내](docs/releasing.md)에 정리했습니다.
+인증은 배포용 Google 서비스 계정을 웹 스토어에 연결하는 방식을 권장합니다. GitHub에 서비스 계정 JSON 키 Secret 1개와 Publisher ID Variable 1개를 등록하면 됩니다. 기존 OAuth Refresh token 방식도 지원합니다. 설정값, 인증 연결, 첫 배포 절차는 [자동 배포 안내](docs/releasing.md)에 정리했습니다.
 
 ## 개발 및 검증
 

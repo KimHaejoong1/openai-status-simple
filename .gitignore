@@ -7,3 +7,6 @@ dist/
 __pycache__/
 .env
 .env.*
+service-account*.json
+gha-creds-*.json
+openai-status-deploy-*.json
