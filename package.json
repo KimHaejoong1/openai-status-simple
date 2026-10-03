@@ -1,0 +1,15 @@
+{
+  "name": "openai-status-simple",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenAI service status at a glance. A dependency-free Chrome extension.",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "test": "node --test",
+    "check": "node --check popup.js && node --check status.js && node --check status-api.js && node --check scripts/chrome-web-store.mjs && node --check scripts/validate-release.mjs",
+    "release:validate": "node scripts/validate-release.mjs",
+    "cws:check": "node scripts/chrome-web-store.mjs --check"
+  },
+  "engines": { "node": ">=22" }
+}

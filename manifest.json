@@ -1,17 +1,19 @@
 {
   "manifest_version": 3,
   "name": "OpenAI Status Reader",
-  "version": "1.0.1",
-  "description": "A simple OpenAI Status Reader Chrome extension.",
+  "version": "2.0.0",
+  "description": "ChatGPT, API, Codex의 현재 서비스 상태를 한눈에 확인하세요. OpenAI 공식 상태 데이터를 사용하는 비공식 확장 프로그램입니다.",
+  "host_permissions": ["https://status.openai.com/*"],
   "icons": {
     "16": "images/icon16.png",
     "48": "images/icon48.png",
     "128": "images/icon128.png"
   },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_title": "OpenAI Status · 현재 서비스 상태"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://status.openai.com"
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; connect-src https://status.openai.com; base-uri 'none'"
   }
 }

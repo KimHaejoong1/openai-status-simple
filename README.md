@@ -1,47 +1,97 @@
-#
+# OpenAI Status Reader
 
-<div align="center">
-<img src="images/icon.webp" width="80 alt=""/>
-</div>
+**지금, 잘 작동하고 있나요?**
 
-# <div align="center">OpenAI_Status_Reader</div>
+ChatGPT, API, Codex의 현재 상태를 작은 팝업 하나로 확인하는 크롬 확장 프로그램입니다. OpenAI 공식 상태 데이터를 사용하는 **비공식 도구**이며, OpenAI와 제휴하거나 OpenAI에서 제공하는 확장 프로그램이 아닙니다.
 
-> 김해중 개인 프로젝트
->
-> 개발기간 : 2024. 08. ~
->
-> 크롬스토어 최초 게시 : 2024.09.02.
->
-> 마지막 업데이트 : 2024.09.04.
+## 기능
 
-## 🛠️참여자
+- 전체 상태를 정상 · 성능 저하 · 일부 장애 · 서비스 장애 · 점검 중 · 확인 불가로 표시합니다.
+- ChatGPT, API, Codex를 먼저 보여주고, 각 행을 누르면 세부 기능의 상태가 펼쳐집니다.
+- FedRAMP, Ads Platform은 기타 서비스에 표시합니다. 문제가 있거나 확인할 수 없으면 해당 영역이 자동으로 펼쳐집니다.
+- 진행 중인 공지를 우선 표시하고, 진행 중인 공지가 없으면 가장 최근 업데이트 하나를 보여줍니다. 공지 제목과 내용은 공식 영문 원문입니다.
+- 팝업을 열 때, 새로고침 버튼을 누를 때, 그리고 보이는 동안 60초마다 조회합니다. 숨겨진 동안에는 반복 조회를 중지합니다.
+- OS의 밝은/어두운 화면 설정과 동작 줄이기 설정을 따릅니다. 세부 정보는 키보드로도 펼칠 수 있습니다.
 
-<td align="center">
-<a href="https://github.com/KimHaejoong1">
-<img src="https://avatars.githubusercontent.com/u/128127416?v=4" width="80" alt=""/>
-<br />
-<sub><b>KimHaejoong1</b></sub>
-</a>
-<br />
-</td>
+## 설치
 
-## 프로젝트 소개
+빌드나 패키지 설치 없이 레포 자체를 확장 프로그램으로 불러올 수 있습니다.
 
-<div>간편하고 빠른 설치를 통해 서비스 상태에 대한 실시간 정보를 손쉽게 확인할 수 있습니다. 먹통이 된 ChatGPT가 왜 그런지 이유라도 알 수 있습니다.</div>
-<br />
-<div>OpenAI에서 제공중인 status는 일반 사용자들에게는 직관적으로 현재 문제가 있는지 없는지 판단하기에는 조금 힘든 디자인을 가지고 있습니다. 아주 간단하게, 현재 작동중인지 여부만을 보여주는 서비스를 제공함으로써 사용자로하여금 좀 더 편리한 서비스의 이용이 가능해집니다.</div>
-<br />
-<br />
-<div>A simple and quick installation allows you to easily check real-time information about OpenAI's status. It helps you understand why ChatGPT or OpenAI services may have stopped working.</div>
-<br />
-<div>The status page provided by OpenAI is not designed for general users to easily determine whether there is an issue with the current service. By offering a simple service that only shows whether the service is currently operational, users can access the service more conveniently.</div>
+1. 이 레포를 다운로드하거나 클론합니다.
+2. Chrome에서 `chrome://extensions`를 엽니다.
+3. **개발자 모드**를 켭니다.
+4. **압축해제된 확장 프로그램을 로드합니다**를 눌러 `manifest.json`이 있는 폴더를 선택합니다.
+5. 도구 모음에서 OpenAI Status Reader 아이콘을 누릅니다.
 
-## 📦기술 스택
+수정 후에는 확장 프로그램 관리 화면에서 새로고침하고 팝업을 다시 여세요. 기존 1.x 버전에서 갱신하는 경우 `status.openai.com`에 대한 호스트 권한이 추가됩니다.
 
-#### Environment
+## 데이터와 상태 판정
 
-<img src="https://img.shields.io/badge/visual_studio_code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white"> <img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white">
+세 요청을 병렬로 보내며, 각 요청은 10초 후 중단합니다.
 
-#### Development
+| 용도 | 공식 데이터 |
+| --- | --- |
+| 전체 상태 | [status.json](https://status.openai.com/api/v2/status.json) |
+| 전체 구성요소 | [components.json](https://status.openai.com/api/v2/components.json) |
+| 최근 공지 | [incidents.json](https://status.openai.com/api/v2/incidents.json) |
 
-<img src="https://img.shields.io/badge/html5-E34F26?style=for-the-badge&logo=html5&logoColor=white"> <img src="https://img.shields.io/badge/javascript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=white"> <img src="https://img.shields.io/badge/css3-1572B6?style=for-the-badge&logo=css3&logoColor=white">
+2026-10-04 확인 당시 `summary.json`은 구성요소 36개 중 25개만 제공하고 공지를 포함하지 않았습니다. 따라서 전체 상태와 구성요소를 별도로 가져옵니다. `incidents/unresolved.json`도 지원되지 않아 최근 공지 응답에서 해결되지 않은 항목을 먼저 보여줍니다. 이 피드는 과거 전체 이력을 보장하지 않으며, 전체 상태는 별도의 상태 및 구성요소 응답으로 판단합니다.
+
+서비스별 상태는 구성요소 중 가장 심각한 상태를 기준으로 합니다. 전체 상태는 전체 지표, 서비스별 상태, 조회된 진행 중 공지를 함께 반영합니다. 장애 발생 날짜로 정상 여부를 추측하지 않습니다. 통신 실패, 비정상 JSON, 미지의 상태 값, 일부 구성요소 누락은 정상으로 간주하지 않습니다. 공지 요청만 실패한 경우에는 확인된 서비스 상태를 유지하고 공지 조회 실패를 별도로 표시합니다. 실패한 갱신에서는 이전 성공 데이터를 현재 상태처럼 재사용하지 않습니다.
+
+공식 JSON은 서비스 그룹 정보를 제공하지 않아 `status.js`에 구성요소 ID별 그룹을 정의했습니다. 이름이 같은 `Login`도 ID로 구분합니다. 새 ID는 숨기지 않고 ‘그 외 서비스’에 표시하며, 기존 ID가 빠지면 해당 그룹은 확인 불가가 됩니다. 공식 그룹이나 구성요소가 바뀌면 `SERVICES`와 테스트 스냅샷을 함께 갱신해 주세요.
+
+조회 시각은 이 확장 프로그램이 응답을 확인한 시각입니다. 공식 페이지의 마지막 변경 시각이나 실측 가동률이 아닙니다. 상태는 OpenAI가 보고하는 전체 서비스 기준이므로 개별 사용자의 이용 환경과 다를 수 있습니다.
+
+## 자동 배포
+
+`main`에 포함된 커밋에 `v2.0.0` 같은 태그를 push하면 GitHub Actions가 테스트, ZIP 생성, 기존 Chrome 웹 스토어 항목 업데이트, 심사 요청까지 실행합니다. Google 인증은 최초 1회 연결해야 합니다. 수동 워크플로 실행은 업로드 없이 연결만 확인합니다.
+
+설정값, 인증 연결, 첫 배포 절차는 [자동 배포 안내](docs/releasing.md)에 정리했습니다.
+
+## 개발 및 검증
+
+Node.js 22 이상에서 실행합니다. 외부 런타임 의존성은 없습니다.
+
+```sh
+npm test
+npm run check
+npm run dev
+```
+
+`http://127.0.0.1:4173/popup.html`에서 실제 공식 데이터를 연결한 팝업을 미리 볼 수 있습니다. 크롬 확장 프로그램의 호스트 권한 동작은 위의 설치 방법으로 별도 확인할 수 있습니다.
+
+예외 화면은 아래 경로에서 확인할 수 있습니다. 테스트 미리보기라고 명시하며, 개발 서버에서만 가짜 데이터를 주입합니다. 확장 프로그램 코드에는 테스트 모드가 없습니다.
+
+```text
+/scenarios/healthy/popup.html
+/scenarios/degraded/popup.html
+/scenarios/outage/popup.html
+/scenarios/maintenance/popup.html
+/scenarios/unknown/popup.html
+/scenarios/incomplete/popup.html
+/scenarios/offline/popup.html
+/scenarios/notices-failed/popup.html
+```
+
+`node --test`는 공식 구성요소 스냅샷을 사용해 그룹 구분, 장애 우선순위, 미해결 공지, 응답 누락, 통신 실패, 타임아웃을 검증합니다. 테스트는 인터넷 연결 없이 실행됩니다.
+
+## 구조
+
+| 파일 | 역할 |
+| --- | --- |
+| `manifest.json` | Manifest V3 설정 및 공식 상태 도메인 권한 |
+| `popup.html`, `styles.css` | 팝업 구조와 밝은/어두운 테마 |
+| `popup.js` | 화면 렌더링, 펼치기, 새로고침 |
+| `status-api.js` | API 조회, 응답 검증, 타임아웃 |
+| `status.js` | 서비스 그룹, 상태 판정, 공지 정렬 |
+| `tests/` | 상태 로직 테스트 및 공식 응답 스냅샷 |
+| `scripts/` | 로컬 미리보기 서버와 예외 상황 데이터 |
+
+## 개인정보
+
+계정 로그인, API 키, 분석 도구, 광고, 백그라운드 서비스 워커를 사용하지 않습니다. 방문 기록과 웹페이지 내용을 읽지 않으며, 사용자 데이터를 저장하지 않습니다. 상태를 조회할 때 `status.openai.com`으로 요청하며, 이 서버에는 일반적인 네트워크 연결 정보가 전달됩니다. 쿠키나 인증 정보는 보내지 않습니다.
+
+## 프로젝트 기록
+
+김해중의 개인 프로젝트로 2024년 8월 시작했으며, 2024년 9월 Chrome 웹 스토어에 처음 게시되었습니다. 2.0에서는 기존 RSS 날짜 기반 판정을 현재 상태 API 기반으로 교체하고 팝업을 전면 개편했습니다.

@@ -1,0 +1,61 @@
+name: Chrome Web Store
+
+on:
+  push:
+    tags: ['v*.*.*']
+  # Manual runs only check credentials and the existing item; they never publish.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chrome-web-store
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'KimHaejoong1/openai-status-simple'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Verify version and release source
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || '' }}
+        run: |
+          node scripts/validate-release.mjs
+          git merge-base --is-ancestor HEAD origin/main
+      - run: npm run check
+      - run: npm test
+      - name: Package only extension files
+        run: python3 scripts/package_extension.py
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: chrome-web-store-package
+          path: dist/openai-status-reader.zip
+          if-no-files-found: error
+          retention-days: 14
+      - name: Verify Chrome Web Store connection
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: node scripts/chrome-web-store.mjs --check
+      - name: Upload and submit for review
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        env:
+          CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: node scripts/chrome-web-store.mjs --publish
